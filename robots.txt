@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://codegoura.github.io/gourahariweb/sitemap.xml

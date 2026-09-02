@@ -1,0 +1,52 @@
+/* =========================================================
+   themes.css — color tokens only. Layout lives in style.css.
+   Palette note: terracotta + deep teal, drawn from the ikat/
+   handloom and clay tones that run through the exhibition
+   work, set against a warm near-black — not a stock blue/
+   violet "tech" gradient.
+   ========================================================= */
+
+:root,
+:root[data-theme="dark"] {
+  --bg: #0c0b09;
+  --bg-elevated: #151310;
+  --bg-elevated-2: #1c1915;
+  --line: #2b271f;
+  --text: #ece7dc;
+  --text-muted: #9c9385;
+  --text-faint: #6b6558;
+
+  --accent: #cf6b3e;         /* terracotta / clay */
+  --accent-strong: #e3814f;
+  --accent-2: #2f7a72;       /* deep teal / ikat */
+  --accent-2-strong: #3d968c;
+
+  --on-accent: #150d08;
+
+  --shadow: 0 24px 48px -24px rgba(0, 0, 0, 0.6);
+  --scrim: rgba(12, 11, 9, 0.72);
+
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --bg: #f6f2ea;
+  --bg-elevated: #ffffff;
+  --bg-elevated-2: #efe9dc;
+  --line: #e0d8c7;
+  --text: #211d16;
+  --text-muted: #6c6455;
+  --text-faint: #948a76;
+
+  --accent: #b85a30;
+  --accent-strong: #9c4a26;
+  --accent-2: #1f5f58;
+  --accent-2-strong: #164943;
+
+  --on-accent: #fdf6ef;
+
+  --shadow: 0 24px 48px -24px rgba(33, 29, 22, 0.25);
+  --scrim: rgba(246, 242, 234, 0.82);
+
+  color-scheme: light;
+}
