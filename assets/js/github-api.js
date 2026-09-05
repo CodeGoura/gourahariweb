@@ -55,6 +55,7 @@ const GitHubData = (() => {
           description: r.description,
           url: r.html_url,
           stars: r.stargazers_count,
+          image: SITE_DATA.repositoryImages[r.name] || null,
         })),
       source: "live",
     };
@@ -81,6 +82,7 @@ const GitHubData = (() => {
           description: r.description,
           url: r.url,
           stars: null,
+          image: r.image || SITE_DATA.repositoryImages[r.name] || null,
         })),
         source: "fallback",
       };

@@ -192,11 +192,13 @@ function renderDesignWork() {
 function codeCardHTML(repo) {
   const hue = hueForString(repo.name);
   const bg = `linear-gradient(135deg, hsl(${hue} 20% 16%), hsl(${hue} 26% 10%))`;
+  const image = repo.image || SITE_DATA.repositoryImages[repo.name];
   return `
     <article class="card reveal">
       <div class="card-art" style="background:${bg}">
+        ${image ? `<img class="card-photo" src="${image}" alt="${repo.name.replace(/_/g, " ")} project preview" loading="lazy" />` : ""}
         <div class="weave"></div>
-        <div class="initials">${initialsFor(repo.name.replace(/_/g, " "))}</div>
+        ${image ? "" : `<div class="initials">${initialsFor(repo.name.replace(/_/g, " "))}</div>`}
       </div>
       <div class="card-body">
         <h3>${repo.name}</h3>
