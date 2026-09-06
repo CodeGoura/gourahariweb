@@ -158,7 +158,7 @@ const SITE_DATA = {
       photos: designPhotos("Kosamb", ["Canopy.jpg", "contol room.jpg", "control room.jpg", "crtl2.jpg", "ctrl2.jpg", "demo stall.jpg", "demo.jpg", "gate.jpg", "gate1 p.jpg", "gate1 prop.jpg", "gate1.jpg", "New Selfie1.jpg", "New Selfie2.jpg", "New stage 2.jpg", "OSP1.jpg", "selfie paint 2 p.jpg", "selfie point 2.jpg", "selfie point p.jpg", "SP2.jpg", "stage 2.jpg", "stage p.jpg", "stage.jpg", "stall.jpg", "stall1.jpg", "them stall p.jpg", "them stall.jpg"], "Zilla Swadeshi Mela & National Level Pallishree Mela"),
       summary:
         "3D view and layout design at KOSAMB — visitor-friendly stall arrangement, accessible pathways and a strong visual identity.",
-      tags: ["Layout Design", "3D View"],
+      tags: ["3D Design", "3D View"],
     },
     {
       title: "Handloom Heritage Exhibition",
@@ -281,9 +281,9 @@ const SITE_DATA = {
     },
     {
       title: "Quickshow",
-      dates: null,
+      dates: "2025",
       partner: null,
-      photos: [],
+      photos: designPhotos("Quickshow", ["Quickshow1.png", "Quickshow2.png"], "UX and UI Design"),
       summary:
         "A modern event-booking UI/UX built from scratch — clean layout, smooth flow, clear user actions.",
       tags: ["UI/UX", "Product Design"],
