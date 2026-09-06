@@ -177,7 +177,7 @@ function renderDesignWork() {
     activePhotos = p.photos || [];
     activePhoto = 0;
     panel.innerHTML = `
-      <button class="lightbox-close" aria-label="Close" data-close>${ICONS.arrow}</button>
+      <button class="lightbox-close" type="button" aria-label="Close project gallery" title="Close" data-close><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       ${activePhotos.length ? `
         <div class="lightbox-viewer">
           <img class="lightbox-feature" src="${activePhotos[0].src}" alt="${activePhotos[0].alt || p.title}" />
