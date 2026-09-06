@@ -152,22 +152,60 @@ function renderDesignWork() {
 
   const lightbox = document.getElementById("lightbox");
   const panel = document.getElementById("lightbox-panel");
+  let activePhoto = 0;
+  let activePhotos = [];
+  let lastFocusedCard = null;
+
+  const arrowIcon = (direction) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="${direction === "next" ? "m9 5 7 7-7 7" : "m15 5-7 7 7 7"}"/></svg>`;
+  const renderPhoto = () => {
+    if (!activePhotos.length) return;
+    const photo = activePhotos[activePhoto];
+    const feature = panel.querySelector(".lightbox-feature");
+    const count = panel.querySelector(".lightbox-count");
+    if (feature) {
+      feature.src = photo.src;
+      feature.alt = photo.alt || "Project image";
+    }
+    if (count) count.textContent = `${activePhoto + 1} / ${activePhotos.length}`;
+    panel.querySelectorAll(".lightbox-thumb").forEach((thumb, index) => {
+      thumb.classList.toggle("is-active", index === activePhoto);
+      thumb.setAttribute("aria-current", index === activePhoto ? "true" : "false");
+    });
+  };
   const openFor = (idx) => {
     const p = SITE_DATA.designWork[idx];
-    const photos = p.photos || [];
+    activePhotos = p.photos || [];
+    activePhoto = 0;
     panel.innerHTML = `
       <button class="lightbox-close" aria-label="Close" data-close>${ICONS.arrow}</button>
-      ${photos.length ? `<div class="lightbox-photos">${photos.map((photo) => `<img src="${photo.src}" alt="${photo.alt || p.title}" loading="lazy" />`).join("")}</div>` : ""}
+      ${activePhotos.length ? `
+        <div class="lightbox-viewer">
+          <img class="lightbox-feature" src="${activePhotos[0].src}" alt="${activePhotos[0].alt || p.title}" />
+          ${activePhotos.length > 1 ? `<button class="lightbox-nav lightbox-prev" type="button" aria-label="Previous image">${arrowIcon("previous")}</button><button class="lightbox-nav lightbox-next" type="button" aria-label="Next image">${arrowIcon("next")}</button>` : ""}
+          <span class="lightbox-count" aria-live="polite">1 / ${activePhotos.length}</span>
+        </div>
+        ${activePhotos.length > 1 ? `<div class="lightbox-thumbs" aria-label="Project images">${activePhotos.map((photo, photoIndex) => `<button class="lightbox-thumb${photoIndex === 0 ? " is-active" : ""}" type="button" aria-label="View image ${photoIndex + 1}" aria-current="${photoIndex === 0 ? "true" : "false"}" data-photo-index="${photoIndex}"><img src="${photo.src}" alt="" loading="lazy" /></button>`).join("")}</div>` : ""}
+      ` : ""}
       <h3>${p.title}</h3>
       <div class="card-meta">${[p.dates, p.partner].filter(Boolean).join(" · ") || "Independent project"}</div>
       <p class="summary">${p.summary}</p>
       <div class="card-tags">${p.tags.map((t) => `<span class="tag">${t}</span>`).join("")}</div>
-      ${photos.length ? "" : `<p class="lightbox-note">Add project photos in the <code>photos</code> list for this work item.</p>`}
+      ${activePhotos.length ? "" : `<p class="lightbox-note">Add project photos in the <code>photos</code> list for this work item.</p>`}
     `;
     lightbox.classList.add("is-open");
+    lightbox.setAttribute("aria-hidden", "false");
+    lastFocusedCard = grid.querySelector(`[data-lightbox-index="${idx}"]`);
+    panel.focus();
     panel.querySelector("[data-close]").addEventListener("click", closeLightbox);
+    panel.querySelector(".lightbox-prev")?.addEventListener("click", () => { activePhoto = (activePhoto - 1 + activePhotos.length) % activePhotos.length; renderPhoto(); });
+    panel.querySelector(".lightbox-next")?.addEventListener("click", () => { activePhoto = (activePhoto + 1) % activePhotos.length; renderPhoto(); });
+    panel.querySelectorAll(".lightbox-thumb").forEach((thumb) => thumb.addEventListener("click", () => { activePhoto = Number(thumb.dataset.photoIndex); renderPhoto(); }));
   };
-  const closeLightbox = () => lightbox.classList.remove("is-open");
+  const closeLightbox = () => {
+    lightbox.classList.remove("is-open");
+    lightbox.setAttribute("aria-hidden", "true");
+    lastFocusedCard?.focus();
+  };
 
   grid.querySelectorAll("[data-lightbox-index]").forEach((card) => {
     card.addEventListener("click", () => openFor(Number(card.dataset.lightboxIndex)));
@@ -183,10 +221,20 @@ function renderDesignWork() {
   });
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") closeLightbox();
+    if (!lightbox.classList.contains("is-open") || activePhotos.length < 2) return;
+    if (e.key === "ArrowLeft") { activePhoto = (activePhoto - 1 + activePhotos.length) % activePhotos.length; renderPhoto(); }
+    if (e.key === "ArrowRight") { activePhoto = (activePhoto + 1) % activePhotos.length; renderPhoto(); }
   });
 
   observeReveal(grid.querySelectorAll(".reveal"));
   enableTilt(grid.querySelectorAll(".card"));
+}
+
+function initImageProtection() {
+  document.addEventListener("contextmenu", (event) => event.preventDefault());
+  document.addEventListener("dragstart", (event) => {
+    if (event.target.closest("img")) event.preventDefault();
+  });
 }
 
 function codeCardHTML(repo) {
@@ -516,4 +564,5 @@ document.addEventListener("DOMContentLoaded", () => {
   initContactForm();
   initGithubEmbeds();
   initFooterYear();
+  initImageProtection();
 });
