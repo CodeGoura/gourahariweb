@@ -438,29 +438,35 @@ function initTypewriter() {
     el.textContent = roles.join(" · ");
     return;
   }
-  let roleIdx = 0, charIdx = 0, deleting = false;
+
+  let roleIdx = 0;
+  let charIdx = 0;
+  let deleting = false;
+  el.textContent = "";
 
   const tick = () => {
     const word = roles[roleIdx];
     if (!deleting) {
-      charIdx++;
+      charIdx = Math.min(charIdx + 1, word.length);
       el.textContent = word.slice(0, charIdx);
       if (charIdx === word.length) {
         deleting = true;
-        setTimeout(tick, 1600);
+        window.setTimeout(tick, 1500);
         return;
       }
     } else {
-      charIdx--;
+      charIdx = Math.max(charIdx - 1, 0);
       el.textContent = word.slice(0, charIdx);
       if (charIdx === 0) {
         deleting = false;
         roleIdx = (roleIdx + 1) % roles.length;
       }
     }
-    setTimeout(tick, deleting ? 35 : 65);
+
+    window.setTimeout(tick, deleting ? 45 : 80);
   };
-  tick();
+
+  window.setTimeout(tick, 350);
 }
 
 function countUp(id, target) {
