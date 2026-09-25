@@ -34,4 +34,4 @@ Design and exhibition images live under `assets/images/design/` and are linked f
 
 1. Push this folder to a public repo — either `codegoura/codegoura.github.io` (root user site) or any repo with Pages enabled.
 2. In the repo, go to **Settings → Pages**, set the source branch to `main` and folder to `/ (root)`.
-3. Your site will be live at `https://codegoura.github.io/` (or `https://codegoura.github.io/gourahariweb/` for a project repo — update the `<link rel="canonical">`, `og:url`, and `sitemap.xml`/`robots.txt` URLs to match).
+3. Your site will be live at  `https://codegoura.github.io/gourahariweb/`
