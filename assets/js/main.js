@@ -465,6 +465,172 @@ function initTypewriter() {
   window.setTimeout(tick, 350);
 }
 
+function initCustomCursor() {
+  if (REDUCE_MOTION) return;
+
+  const root = document.documentElement;
+  const dot = document.getElementById("custom-cursor-dot");
+  const ring = document.getElementById("custom-cursor-ring");
+  const label = document.getElementById("custom-cursor-label");
+  if (!dot || !ring || !label) return;
+
+  let mouseX = 0;
+  let mouseY = 0;
+  let ringX = 0;
+  let ringY = 0;
+  let activeTarget = null;
+  let lastTrail = 0;
+  let isActive = false;
+  let touchHideTimer;
+
+  const animateRing = () => {
+    if (!isActive) return;
+    ringX += (mouseX - ringX) * 0.18;
+    ringY += (mouseY - ringY) * 0.18;
+    ring.style.left = `${ringX}px`;
+    ring.style.top = `${ringY}px`;
+    window.requestAnimationFrame(animateRing);
+  };
+
+  const updateTarget = (target) => {
+    activeTarget = target;
+    ring.classList.toggle("is-target", Boolean(target));
+    label.classList.toggle("is-visible", Boolean(target));
+    if (!target) return;
+
+    const isTextField = target.matches("input, textarea, select, [contenteditable='true']");
+    label.textContent = isTextField
+      ? "TYPE"
+      : target.dataset.cursor || (target.matches("a") ? "OPEN" : "CLICK");
+  };
+
+  const spawnTrail = (x, y) => {
+    const now = performance.now();
+    if (now - lastTrail < 40) return;
+    lastTrail = now;
+
+    const trail = document.createElement("span");
+    trail.className = "custom-cursor-trail";
+    trail.style.left = `${x}px`;
+    trail.style.top = `${y}px`;
+    document.body.appendChild(trail);
+    window.requestAnimationFrame(() => trail.classList.add("is-fading"));
+    window.setTimeout(() => trail.remove(), 470);
+  };
+
+  document.addEventListener("pointermove", (event) => {
+    if (event.pointerType !== "mouse" && event.pointerType !== "touch") return;
+    if (event.pointerType === "touch") window.clearTimeout(touchHideTimer);
+    mouseX = event.clientX;
+    mouseY = event.clientY;
+    dot.style.left = `${mouseX}px`;
+    dot.style.top = `${mouseY}px`;
+    label.style.left = `${mouseX}px`;
+    label.style.top = `${mouseY}px`;
+
+    if (!isActive) {
+      isActive = true;
+      ringX = mouseX;
+      ringY = mouseY;
+      if (event.pointerType === "mouse") root.classList.add("custom-cursor-active");
+      window.requestAnimationFrame(animateRing);
+    }
+
+    dot.classList.add("is-shown");
+    ring.classList.add("is-shown");
+    label.classList.add("is-shown");
+
+    const target = event.target instanceof Element
+      ? event.target.closest("input, textarea, select, [contenteditable='true']")
+      : null;
+    const overTextField = Boolean(target);
+    dot.classList.toggle("is-hidden", overTextField && event.pointerType === "mouse");
+    ring.classList.toggle("is-hidden", overTextField && event.pointerType === "mouse");
+    label.classList.toggle("is-hidden", overTextField && event.pointerType === "mouse");
+    if (!overTextField) spawnTrail(mouseX, mouseY);
+
+    if (event.pointerType === "touch") {
+      const interactive = event.target instanceof Element
+        ? event.target.closest("a, button, input, textarea, select, [role='button'], [data-cursor]")
+        : null;
+      ring.classList.toggle("is-target", Boolean(interactive));
+      label.classList.toggle("is-visible", Boolean(interactive));
+      label.textContent = interactive ? "TAP" : "";
+    }
+  });
+
+  document.addEventListener("pointerover", (event) => {
+    if (!(event.target instanceof Element)) return;
+    updateTarget(event.target.closest("a, button, input, textarea, select, [role='button'], [data-cursor]"));
+  });
+
+  document.addEventListener("pointerout", (event) => {
+    if (event.pointerType === "touch") return;
+    if (activeTarget && !activeTarget.contains(event.relatedTarget)) {
+      const next = event.relatedTarget instanceof Element
+        ? event.relatedTarget.closest("a, button, input, textarea, select, [role='button'], [data-cursor]")
+        : null;
+      updateTarget(next);
+    }
+    if (!event.relatedTarget) {
+      isActive = false;
+      root.classList.remove("custom-cursor-active");
+      dot.classList.remove("is-shown");
+      ring.classList.remove("is-shown");
+      label.classList.remove("is-shown");
+    }
+  });
+
+  document.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0) return;
+    dot.classList.add("is-pressed");
+
+    if (event.pointerType !== "touch") return;
+    window.clearTimeout(touchHideTimer);
+    mouseX = event.clientX;
+    mouseY = event.clientY;
+    ringX = mouseX;
+    ringY = mouseY;
+    dot.style.left = `${mouseX}px`;
+    dot.style.top = `${mouseY}px`;
+    ring.style.left = `${ringX}px`;
+    ring.style.top = `${ringY}px`;
+    label.style.left = `${mouseX}px`;
+    label.style.top = `${mouseY}px`;
+    dot.classList.add("is-shown");
+    ring.classList.add("is-shown");
+    label.classList.add("is-shown");
+    isActive = true;
+    window.requestAnimationFrame(animateRing);
+
+    const target = event.target instanceof Element
+      ? event.target.closest("a, button, input, textarea, select, [role='button'], [data-cursor]")
+      : null;
+    ring.classList.toggle("is-target", Boolean(target));
+    label.classList.toggle("is-visible", Boolean(target));
+    label.textContent = target ? "TAP" : "";
+  });
+  document.addEventListener("pointerup", (event) => {
+    dot.classList.remove("is-pressed");
+    if (event.pointerType !== "touch") return;
+
+    touchHideTimer = window.setTimeout(() => {
+      isActive = false;
+      dot.classList.remove("is-shown");
+      ring.classList.remove("is-shown", "is-target");
+      label.classList.remove("is-shown", "is-visible");
+    }, 450);
+  });
+  window.addEventListener("blur", () => {
+    dot.classList.remove("is-pressed");
+    root.classList.remove("custom-cursor-active");
+    isActive = false;
+    dot.classList.remove("is-shown");
+    ring.classList.remove("is-shown");
+    label.classList.remove("is-shown");
+  });
+}
+
 function countUp(id, target) {
   const el = document.getElementById(id);
   if (!el) return;
@@ -563,6 +729,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initNavScroll();
   initGenericReveal();
   initTypewriter();
+  initCustomCursor();
   initContactForm();
   initGithubEmbeds();
   initFooterYear();
