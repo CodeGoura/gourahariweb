@@ -434,10 +434,6 @@ function initTypewriter() {
   const el = document.getElementById("hero-roles-text");
   if (!el) return;
   const roles = SITE_DATA.person.roles;
-  if (REDUCE_MOTION) {
-    el.textContent = roles.join(" · ");
-    return;
-  }
 
   let roleIdx = 0;
   let charIdx = 0;
