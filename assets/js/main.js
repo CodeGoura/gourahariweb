@@ -466,165 +466,164 @@ function initTypewriter() {
 }
 
 function initCustomCursor() {
-  if (REDUCE_MOTION) return;
+  if (window.matchMedia("(pointer: coarse)").matches) return;
 
-  const root = document.documentElement;
-  const dot = document.getElementById("custom-cursor-dot");
-  const ring = document.getElementById("custom-cursor-ring");
-  const label = document.getElementById("custom-cursor-label");
+  const dot = document.getElementById("cursor");
+  const ring = document.getElementById("ring");
+  const label = document.getElementById("label");
   if (!dot || !ring || !label) return;
 
-  let mouseX = 0;
-  let mouseY = 0;
+  let targetX = 0;
+  let targetY = 0;
+  let dotX = 0;
+  let dotY = 0;
   let ringX = 0;
   let ringY = 0;
   let activeTarget = null;
   let lastTrail = 0;
-  let isActive = false;
-  let touchHideTimer;
-
-  const animateRing = () => {
-    if (!isActive) return;
-    ringX += (mouseX - ringX) * 0.18;
-    ringY += (mouseY - ringY) * 0.18;
-    ring.style.left = `${ringX}px`;
-    ring.style.top = `${ringY}px`;
-    window.requestAnimationFrame(animateRing);
-  };
+  let lastTrailX = 0;
+  let lastTrailY = 0;
+  let lastTechTrail = 0;
+  let lastTechX = 0;
+  let lastTechY = 0;
+  let frameId = 0;
+  let hasPosition = false;
+  let pendingTrail = null;
+  let pendingTechParticles = [];
+  let isDragging = false;
 
   const updateTarget = (target) => {
     activeTarget = target;
-    ring.classList.toggle("is-target", Boolean(target));
+    ring.classList.toggle("target", Boolean(target));
     label.classList.toggle("is-visible", Boolean(target));
-    if (!target) return;
+    if (!target) {
+      label.textContent = "";
+      return;
+    }
 
-    const isTextField = target.matches("input, textarea, select, [contenteditable='true']");
-    label.textContent = isTextField
-      ? "TYPE"
-      : target.dataset.cursor || (target.matches("a") ? "OPEN" : "CLICK");
+    const cursorType = target.dataset.cursor || (target.matches("input, textarea, select, [contenteditable='true']") ? "text" : target.matches("a") ? "link" : "click");
+    label.textContent = cursorType === "link" ? "OPEN ->" : cursorType === "text" ? "TYPE" : "CLICK";
   };
 
   const spawnTrail = (x, y) => {
     const now = performance.now();
-    if (now - lastTrail < 40) return;
+    if (now - lastTrail < 35 || Math.hypot(x - lastTrailX, y - lastTrailY) < 2) return;
     lastTrail = now;
+    lastTrailX = x;
+    lastTrailY = y;
 
     const trail = document.createElement("span");
     trail.className = "custom-cursor-trail";
-    trail.style.left = `${x}px`;
-    trail.style.top = `${y}px`;
+    trail.style.position = "fixed";
+    trail.style.left = "0";
+    trail.style.top = "0";
+    trail.style.setProperty("--trail-x", `${x}px`);
+    trail.style.setProperty("--trail-y", `${y}px`);
     document.body.appendChild(trail);
-    window.requestAnimationFrame(() => trail.classList.add("is-fading"));
-    window.setTimeout(() => trail.remove(), 470);
+    trail.addEventListener("transitionend", (event) => {
+      if (event.propertyName === "opacity") trail.remove();
+    }, { once: true });
+    pendingTrail = trail;
   };
 
-  document.addEventListener("pointermove", (event) => {
-    if (event.pointerType !== "mouse" && event.pointerType !== "touch") return;
-    if (event.pointerType === "touch") window.clearTimeout(touchHideTimer);
-    mouseX = event.clientX;
-    mouseY = event.clientY;
-    dot.style.left = `${mouseX}px`;
-    dot.style.top = `${mouseY}px`;
-    label.style.left = `${mouseX}px`;
-    label.style.top = `${mouseY}px`;
+  const spawnTechParticles = (x, y) => {
+    const now = performance.now();
+    if (now - lastTechTrail < 45 || Math.hypot(x - lastTechX, y - lastTechY) < 3) return;
+    lastTechTrail = now;
+    lastTechX = x;
+    lastTechY = y;
 
-    if (!isActive) {
-      isActive = true;
-      ringX = mouseX;
-      ringY = mouseY;
-      if (event.pointerType === "mouse") root.classList.add("custom-cursor-active");
-      window.requestAnimationFrame(animateRing);
+    const fragments = ["01", "+", "[]", "//"];
+    for (let index = 0; index < 2; index += 1) {
+      const particle = document.createElement("span");
+      particle.className = "custom-cursor-tech-particle";
+      particle.textContent = fragments[Math.floor(Math.random() * fragments.length)];
+      particle.style.setProperty("--particle-x", `${x + (Math.random() - 0.5) * 8}px`);
+      particle.style.setProperty("--particle-y", `${y + (Math.random() - 0.5) * 8}px`);
+      particle.style.setProperty("--particle-dx", `${(Math.random() - 0.5) * 28}px`);
+      particle.style.setProperty("--particle-dy", `${(Math.random() - 0.5) * 28}px`);
+      particle.style.setProperty("--particle-rotation", `${(Math.random() - 0.5) * 140}deg`);
+      particle.addEventListener("transitionend", (event) => {
+        if (event.propertyName === "opacity") particle.remove();
+      }, { once: true });
+      document.body.appendChild(particle);
+      pendingTechParticles.push(particle);
+    }
+  };
+
+  const animateCursor = () => {
+    const easing = REDUCE_MOTION ? 1 : null;
+    const dotEase = easing ?? 0.35;
+    const ringEase = easing ?? 0.12;
+    dotX += (targetX - dotX) * dotEase;
+    dotY += (targetY - dotY) * dotEase;
+    ringX += (targetX - ringX) * ringEase;
+    ringY += (targetY - ringY) * ringEase;
+
+    dot.style.transform = `translate3d(${dotX}px, ${dotY}px, 0) translate(-50%, -50%)`;
+    ring.style.transform = `translate3d(${ringX}px, ${ringY}px, 0) translate(-50%, -50%)`;
+    label.style.transform = `translate3d(${dotX + 16}px, ${dotY + 16}px, 0)`;
+
+    if (pendingTrail) {
+      pendingTrail.classList.add("is-fading");
+      pendingTrail = null;
+    }
+    pendingTechParticles.forEach((particle) => particle.classList.add("is-fading"));
+    pendingTechParticles = [];
+    if (!REDUCE_MOTION) {
+      if (isDragging) spawnTechParticles(dotX, dotY);
+      else spawnTrail(dotX, dotY);
     }
 
+    const moving = Math.abs(targetX - dotX) > 0.1 || Math.abs(targetY - dotY) > 0.1 || Math.abs(targetX - ringX) > 0.1 || Math.abs(targetY - ringY) > 0.1;
+    frameId = moving || pendingTrail || pendingTechParticles.length ? window.requestAnimationFrame(animateCursor) : 0;
+  };
+
+  document.addEventListener("mousemove", (event) => {
+    targetX = event.clientX;
+    targetY = event.clientY;
+    if (!hasPosition) {
+      dotX = ringX = targetX;
+      dotY = ringY = targetY;
+      hasPosition = true;
+    }
     dot.classList.add("is-shown");
     ring.classList.add("is-shown");
     label.classList.add("is-shown");
-
-    const target = event.target instanceof Element
-      ? event.target.closest("input, textarea, select, [contenteditable='true']")
-      : null;
-    const overTextField = Boolean(target);
-    dot.classList.toggle("is-hidden", overTextField && event.pointerType === "mouse");
-    ring.classList.toggle("is-hidden", overTextField && event.pointerType === "mouse");
-    label.classList.toggle("is-hidden", overTextField && event.pointerType === "mouse");
-    if (!overTextField) spawnTrail(mouseX, mouseY);
-
-    if (event.pointerType === "touch") {
-      const interactive = event.target instanceof Element
-        ? event.target.closest("a, button, input, textarea, select, [role='button'], [data-cursor]")
-        : null;
-      ring.classList.toggle("is-target", Boolean(interactive));
-      label.classList.toggle("is-visible", Boolean(interactive));
-      label.textContent = interactive ? "TAP" : "";
-    }
+    if (!frameId) frameId = window.requestAnimationFrame(animateCursor);
   });
 
   document.addEventListener("pointerover", (event) => {
     if (!(event.target instanceof Element)) return;
-    updateTarget(event.target.closest("a, button, input, textarea, select, [role='button'], [data-cursor]"));
+    updateTarget(event.target.closest("a, button, input, textarea, select, [contenteditable='true'], [data-cursor]"));
   });
 
   document.addEventListener("pointerout", (event) => {
-    if (event.pointerType === "touch") return;
     if (activeTarget && !activeTarget.contains(event.relatedTarget)) {
       const next = event.relatedTarget instanceof Element
-        ? event.relatedTarget.closest("a, button, input, textarea, select, [role='button'], [data-cursor]")
+        ? event.relatedTarget.closest("a, button, input, textarea, select, [contenteditable='true'], [data-cursor]")
         : null;
       updateTarget(next);
     }
     if (!event.relatedTarget) {
-      isActive = false;
-      root.classList.remove("custom-cursor-active");
       dot.classList.remove("is-shown");
       ring.classList.remove("is-shown");
       label.classList.remove("is-shown");
     }
   });
 
-  document.addEventListener("pointerdown", (event) => {
+  document.addEventListener("mousedown", (event) => {
     if (event.button !== 0) return;
+    isDragging = true;
     dot.classList.add("is-pressed");
-
-    if (event.pointerType !== "touch") return;
-    window.clearTimeout(touchHideTimer);
-    mouseX = event.clientX;
-    mouseY = event.clientY;
-    ringX = mouseX;
-    ringY = mouseY;
-    dot.style.left = `${mouseX}px`;
-    dot.style.top = `${mouseY}px`;
-    ring.style.left = `${ringX}px`;
-    ring.style.top = `${ringY}px`;
-    label.style.left = `${mouseX}px`;
-    label.style.top = `${mouseY}px`;
-    dot.classList.add("is-shown");
-    ring.classList.add("is-shown");
-    label.classList.add("is-shown");
-    isActive = true;
-    window.requestAnimationFrame(animateRing);
-
-    const target = event.target instanceof Element
-      ? event.target.closest("a, button, input, textarea, select, [role='button'], [data-cursor]")
-      : null;
-    ring.classList.toggle("is-target", Boolean(target));
-    label.classList.toggle("is-visible", Boolean(target));
-    label.textContent = target ? "TAP" : "";
   });
-  document.addEventListener("pointerup", (event) => {
+  document.addEventListener("mouseup", () => {
+    isDragging = false;
     dot.classList.remove("is-pressed");
-    if (event.pointerType !== "touch") return;
-
-    touchHideTimer = window.setTimeout(() => {
-      isActive = false;
-      dot.classList.remove("is-shown");
-      ring.classList.remove("is-shown", "is-target");
-      label.classList.remove("is-shown", "is-visible");
-    }, 450);
   });
   window.addEventListener("blur", () => {
+    isDragging = false;
     dot.classList.remove("is-pressed");
-    root.classList.remove("custom-cursor-active");
-    isActive = false;
     dot.classList.remove("is-shown");
     ring.classList.remove("is-shown");
     label.classList.remove("is-shown");
